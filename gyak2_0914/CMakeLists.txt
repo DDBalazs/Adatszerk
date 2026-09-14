@@ -3,4 +3,4 @@ project(gyak2_0914)
 
 set(CMAKE_CXX_STANDARD 26)
 
-add_executable(gyak2_0914 main.cpp utility.h)
+add_executable(gyak2_0914 main.cpp Vehicle.h Bike.h)

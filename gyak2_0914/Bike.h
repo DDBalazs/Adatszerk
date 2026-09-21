@@ -1,19 +1,19 @@
 //
-// Created by csoke on 2026. 09. 14..
+// Created by Arpad on 2026. 09. 15..
 //
 
-#ifndef GYAK2_0914_BIKE_H
-#define GYAK2_0914_BIKE_H
-#include "Vehicle.h"
-#include <string>
+#ifndef ADATSZERKEZETEK_BIKE_H
+#define ADATSZERKEZETEK_BIKE_H
+#include "Vehicle.hpp"
 using namespace std;
-
-class Bike : public  Vehicle {
-private:
-
+class Bike : public Vehicle {
 public:
-    Bike(string type, double kmh, int capacity);
-    Bike(moveOn(kmh));
+    Bike(string type) : Vehicle(type, 0, 1) {}
+    virtual ~Bike() = default;
+
+    virtual void moveOn(double km) override {
+        kmh += km;
+    }
 };
 
-#endif //GYAK2_0914_BIKE_H
+#endif //ADATSZERKEZETEK_BIKE_H

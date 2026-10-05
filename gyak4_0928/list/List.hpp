@@ -287,7 +287,26 @@ template <class T> void List<T>::removeLast() {
 
 // Törli a lista aktuális elemét
 template <class T> void List<T>::removeCur() {
-  // TODO
+  if (cur == nullptr)
+    throw CurNullException();
+  if (this->cur == this->head && this->cur == this->tail) {
+    delete cur;
+    tail = head = cur = nullptr;
+  }
+  if (isFirst()) {
+    removeFirst();
+    return;
+  }
+  if (isLast()) {
+    removeLast();
+    return;
+  }
+  cur->next->prev = cur->prev;
+  cur->prev->next = cur->next;
+  Node* tmp = cur->prev;
+  delete cur;
+  cur = tmp;
+
 }
 
 /// Kiegészítő eljárás implementálása

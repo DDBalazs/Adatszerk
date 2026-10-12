@@ -120,7 +120,11 @@ public:
   */
 template<Sortable T>
 void BinaryTree<T>::_destroy(Node* x) {
-    static_cast<void>(x);
+    if (x != nullptr) {
+        _destroy(x->left);
+        _destroy(x->right);
+        delete x;
+    }
 }
 
 /**
@@ -128,36 +132,46 @@ void BinaryTree<T>::_destroy(Node* x) {
   */
 template<Sortable T>
 BinaryTree<T>::Node* BinaryTree<T>::_getroot() const {
-    return nullptr;
+    return root;
 }
 /**
   * Segédfüggvény a copy constructor-hoz valamint assigment operator-hoz
   */
 template<Sortable T>
 BinaryTree<T>::Node* BinaryTree<T>::_copyOf(Node* n, Node* p) {
-    static_cast<void>(n);
-    static_cast<void>(p);
-    return nullptr;
+    if (n==nullptr)
+        return nullptr;
+
+    Node *newNode = new Node(n->key, p);
+    newNode->left = _copyOf(n->left, newNode);
+    newNode->right = _copyOf(n->right, newNode);
+    return newNode;
+
 }
 
 // Másoló konstruktor (klónozás - meglévő fából készít másolatot)
 template<Sortable T>
 BinaryTree<T>::BinaryTree(const BinaryTree<T>& t) {
-    static_cast<void>(t);
+    root = _copyOf(t.root, nullptr);
 }
 
 // Assigment operator (meglévő fát tesz egyenlővé egy másikkal)
 template<Sortable T>
 BinaryTree<T>& BinaryTree<T>::operator=(const BinaryTree<T>& t) {
-    static_cast<void>(t);
+    if (this != &t) {
+        _destroy(t.root);
+        root = _copyOf(t.root, nullptr);
+    }
+    return *this;
 }
 
 // Visszaadja az x gyökerű részfa legkisebb értékű csúcsát.
 // Előfeltétel: x != nil
 template<Sortable T>
 BinaryTree<T>::Node *BinaryTree<T>::_min(Node* x) {
-    static_cast<void>(x);
-    return nullptr;
+    if (x==nullptr) return nullptr;
+    while (x->left!=nullptr) x = x->left;
+    return x;
 }
 /**
   * Visszaadja az x gyökerű részfa legnagyobb értékű csúcsát.
@@ -165,8 +179,9 @@ BinaryTree<T>::Node *BinaryTree<T>::_min(Node* x) {
   */
 template<Sortable T>
 BinaryTree<T>::Node *BinaryTree<T>::_max(Node* x) {
-    static_cast<void>(x);
-    return nullptr;
+    if (x==nullptr) return nullptr;
+    while (x->right!=nullptr) x = x->right;
+    return x;
 }
 
 /**
@@ -176,8 +191,15 @@ BinaryTree<T>::Node *BinaryTree<T>::_max(Node* x) {
   */
 template<Sortable T>
 BinaryTree<T>::Node *BinaryTree<T>::_next(Node* x) {
-    static_cast<void>(x);
-    return nullptr;
+    if (x == nullptr) return nullptr;
+    if (x->left!=nullptr) return _min(x->right);
+
+    Node* y = x->parent;
+    while (y != nullptr && y->right) {
+        x = y;
+        y = y->parent;
+    }
+    return y;
 }
 
 /**
@@ -187,8 +209,16 @@ BinaryTree<T>::Node *BinaryTree<T>::_next(Node* x) {
   */
 template<Sortable T>
 BinaryTree<T>::Node *BinaryTree<T>::_prev(Node* x) {
-    static_cast<void>(x);
-    return nullptr;
+    if (x==nullptr) return nullptr;
+    if (x->left != nullptr) {
+        return _max(x->left);
+    }
+    Node* y = x->parent;
+    while (y != nullptr && y->left) {
+        x=y;
+        y=y->parent;
+    }
+    return y;
 }
 
 /**
@@ -198,13 +228,18 @@ BinaryTree<T>::Node *BinaryTree<T>::_prev(Node* x) {
   */
 template<Sortable T>
 size_t BinaryTree<T>::_size(Node* x) const {
-    static_cast<void>(x);
-    return 0uz;
+    if (x == nullptr) {
+        return 0;
+    }
+    return 1 + _size(x->left) + _size(x->right);
 }
 
 template<Sortable T>
 T BinaryTree<T>::getroot() const {
-    throw method_not_implemented();
+    if (isempty()) {
+        throw internal_error("A fa ures.");
+    }
+    return root->key;
 }
 
 /**
@@ -215,8 +250,15 @@ template<Sortable T>
 bool BinaryTree<T>::find(const T& k) const {
     Node* x = root;
     while (x != nullptr) {
-        
+        if (k < x->key) {
+            x = x->left;
+        } else if (x->key < k) {
+            x = x->right;
+        } else {
+            return true;
+        }
     }
+    return false;
 }
 
 /**
@@ -225,7 +267,29 @@ bool BinaryTree<T>::find(const T& k) const {
   */
 template<Sortable T>
 void BinaryTree<T>::insert(const T& k) {
-    static_cast<void>(k);
+    Node* y = nullptr;
+    Node* x = root;
+
+    while (x != nullptr) {
+        y = x;
+        if (k < x->key) {
+            x = x->left;
+        } else if (x->key < k) {
+            x = x->right;
+        } else {
+            return;
+        }
+    }
+
+    Node* z = new Node(k, y);
+
+    if (y == nullptr) {
+        root = z;
+    } else if (k < y->key) {
+        y->left = z;
+    } else {
+        y->right = z;
+    }
 }
 
 /**
@@ -234,7 +298,55 @@ void BinaryTree<T>::insert(const T& k) {
   */
 template<Sortable T>
 void BinaryTree<T>::remove(const T& k) {
-    static_cast<void>(k);
+    // megtaláljuk a törlendő z csúcsot
+    Node* z = root;
+    while (z != nullptr) {
+        if (k < z->key) {
+            z = z->left;
+        } else if (z->key < k) {
+            z = z->right;
+        } else {
+            break;
+        }
+    }
+
+    if (z == nullptr) {
+        return; // Nem találtuk meg az elemet, nincs mit törölni
+    }
+
+    // 2. Törlés előkészítése (y: a csúcs amit fizikailag kivágunk a fából)
+    Node* y;
+    if (z->left == nullptr || z->right == nullptr) {
+        y = z; // Ha 0 vagy 1 gyermeke van, magát a csúcsot vágjuk ki
+    } else {
+        y = _next(z); // Ha 2 gyermeke van, a rákövetkezőjét fogjuk kivágni, és annak az értékét felmásolni
+    }
+
+    // 3. (x: az y kivágott csúcs gyermeke, amit be kell kötnünk a helyére)
+    Node* x;
+    if (y->left != nullptr) {
+        x = y->left;
+    } else {
+        x = y->right;
+    }
+
+    if (x != nullptr) {
+        x->parent = y->parent;
+    }
+
+    if (y->parent == nullptr) {
+        root = x;
+    } else if (y == y->parent->left) {
+        y->parent->left = x;
+    } else {
+        y->parent->right = x;
+    }
+
+    if (y != z) {
+        z->key = y->key;
+    }
+
+    delete y;
 }
 
 
@@ -242,21 +354,33 @@ void BinaryTree<T>::remove(const T& k) {
 // Preorder bejárás.
 template<Sortable T>
 std::ostream& BinaryTree<T>::_preorder(Node* i, std::ostream& o) {
-    static_cast<void>(i);
+    if (i!=nullptr) {
+        o << i->key << " ";
+        _preorder(i->left, o);
+        _preorder(i->right, o);
+    }
     return o;
 }
 
 // Postorder bejárás.
 template<Sortable T>
 std::ostream& BinaryTree<T>::_postorder(Node* i, std::ostream& o) {
-    static_cast<void>(i);
+    if (i!=nullptr) {
+        _postorder(i->left, o);
+        _postorder(i->right, o);
+        o << i->key << " ";
+    }
     return o;
 }
 
 // Inorder bejárás.
 template<Sortable T>
 std::ostream& BinaryTree<T>::_inorder(Node* i, std::ostream& o) {
-    static_cast<void>(i);
+    if (i != nullptr) {
+        _inorder(i->left, o);
+        o << i->key << " ";
+        _inorder(i->right, o);
+    }
     return o;
 }
 
@@ -264,17 +388,17 @@ std::ostream& BinaryTree<T>::_inorder(Node* i, std::ostream& o) {
 // Bináris keresőfa bejárások kívülről elérhető függvényei.
 template<Sortable T>
 std::ostream& BinaryTree<T>::preorder(std::ostream& o) {
-    return o;
+    return _preorder(root, o);
 }
 
 template<Sortable T>
 std::ostream& BinaryTree<T>::postorder(std::ostream& o) {
-    return o;
+    return _postorder(root, o);
 }
 
 template<Sortable T>
 std::ostream& BinaryTree<T>::inorder(std::ostream& o) {
-    return o;
+    return _inorder(root, o);
 }
 
 /**
